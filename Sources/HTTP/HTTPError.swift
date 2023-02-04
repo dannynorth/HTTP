@@ -2,6 +2,7 @@ public struct HTTPError: Error {
     
     public enum Code {
         case invalidRequest
+        case unknown
     }
     
     public let code: Code
@@ -10,7 +11,6 @@ public struct HTTPError: Error {
     public let message: String?
     
     public let underlyingError: Error?
-    
     
     public init(code: HTTPError.Code, request: HTTPRequest, response: HTTPResponse? = nil, message: String? = nil, underlyingError: Error? = nil) {
         self.code = code
