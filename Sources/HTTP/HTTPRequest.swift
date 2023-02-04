@@ -20,6 +20,11 @@ public struct HTTPRequest: Sendable {
         set { components.scheme = newValue }
     }
     
+    public var host: String? {
+        get { components.host }
+        set { components.host = newValue }
+    }
+    
     public var path: String {
         get { components.path }
         set { components.path = newValue }
