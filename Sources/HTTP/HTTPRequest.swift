@@ -9,6 +9,8 @@ public struct HTTPRequest: Sendable {
     private var components = URLComponents()
     private var headers = [HTTPHeader: [String]]()
     
+    public var body: (any HTTPBody)?
+    
     public init() {
         scheme = "https"
     }
