@@ -4,13 +4,13 @@ public struct HTTPResponse: Sendable {
     
     public var status: HTTPStatus
     
-    public var headers = [HTTPHeader: [String]]()
+    public var headers = HTTPHeaders()
     
     public var body: (any HTTPBody)?
     
     public init(request: HTTPRequest,
                 status: HTTPStatus,
-                headers: [HTTPHeader : [String]] = [:],
+                headers: HTTPHeaders = .init(),
                 body: (any HTTPBody)? = nil) {
         
         self.request = request

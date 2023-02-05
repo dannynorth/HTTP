@@ -7,7 +7,8 @@ public struct HTTPRequest: Sendable {
     public var method: HTTPMethod = .get
     
     private var components = URLComponents()
-    private var headers = HTTPHeaders()
+    public var query = HTTPQuery()
+    public var headers = HTTPHeaders()
     private var options = [ObjectIdentifier: any Sendable]()
     
     public var body: (any HTTPBody)?
@@ -39,6 +40,16 @@ public struct HTTPRequest: Sendable {
     public subscript(headers name: HTTPHeader) -> [String] {
         get { headers[name] }
         set { headers[name] = newValue }
+    }
+    
+    public subscript(query name: String) -> String? {
+        get { query.firstValue(for: name) }
+        set { query.setValue(newValue, for: name) }
+    }
+    
+    public subscript(queries name: String) -> [String] {
+        get { query[name] }
+        set { query[name] = newValue }
     }
     
     public subscript<O: HTTPOption>(option type: O.Type) -> O.Value {

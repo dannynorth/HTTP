@@ -18,54 +18,32 @@ public struct HTTPHeader: RawRepresentable, Hashable, Sendable {
     
 }
 
-internal struct HTTPHeaders: Sendable {
+public struct HTTPHeaders: Sendable, Sequence {
     
-    private var pairs = Array<(HTTPHeader, String)>()
+    private var pairs = Pairs<HTTPHeader, String>()
     
-    internal init() { }
+    public init() { }
     
-    internal subscript(name: HTTPHeader) -> [String] {
-        get { values(for: name) }
-        set { setValues(newValue, for: name) }
+    public subscript(name: HTTPHeader) -> [String] {
+        get { pairs[name] }
+        set { pairs[name] = newValue }
     }
     
-    internal func firstValue(for header: HTTPHeader) -> String? {
-        return pairs.first(where: { $0.0 == header })?.1
+    public func firstValue(for header: HTTPHeader) -> String? {
+        pairs.firstValue(for: header)
     }
     
-    internal mutating func setValue(_ value: String?, for header: HTTPHeader) {
-        if let value {
-            self.setValues([value], for: header)
-        } else {
-            self.setValues([], for: header)
-        }
+    public mutating func setValue(_ value: String?, for header: HTTPHeader) {
+        pairs.setValue(value, for: header)
     }
     
-    private func values(for header: HTTPHeader) -> [String] {
-        return pairs.compactMap { $0 == header ? $1 : nil }
+    public mutating func addValue(_ value: String, for header: HTTPHeader) {
+        pairs.addValue(value, for: header)
     }
     
-    private mutating func setValues(_ values: [String], for header: HTTPHeader) {
-        var remaining = values.makeIterator()
-        var new = Array<(HTTPHeader, String)>()
-        
-        for (existingHeader, value) in pairs {
-            if existingHeader == header {
-                if let next = remaining.next() {
-                    // there's a replacement value
-                    new.append((existingHeader, next))
-                } else {
-                    // there is no replacement value; do not append
-                }
-            } else {
-                new.append((existingHeader, value))
-            }
-        }
-        
-        while let next = remaining.next() {
-            new.append((header, next))
-        }
-        
-        self.pairs = new
+    public typealias Element = (HTTPHeader, String)
+    
+    public func makeIterator() -> IndexingIterator<Array<Element>> {
+        return pairs.makeIterator()
     }
 }
