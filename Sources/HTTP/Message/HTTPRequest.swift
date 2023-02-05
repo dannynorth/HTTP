@@ -6,31 +6,17 @@ public struct HTTPRequest: Sendable {
     
     public var method: HTTPMethod = .get
     
-    private var components = URLComponents()
+    public var host: String?
+    public var path: String?
+    public var fragment: String?
     public var query = HTTPQuery()
     public var headers = HTTPHeaders()
+    
     private var options = [ObjectIdentifier: any Sendable]()
     
     public var body: (any HTTPBody)?
     
-    public init() {
-        scheme = "https"
-    }
-    
-    public var scheme: String? {
-        get { components.scheme }
-        set { components.scheme = newValue }
-    }
-    
-    public var host: String? {
-        get { components.host }
-        set { components.host = newValue }
-    }
-    
-    public var path: String {
-        get { components.path }
-        set { components.path = newValue }
-    }
+    public init() { }
     
     public subscript(header name: HTTPHeader) -> String? {
         get { headers.firstValue(for: name) }
