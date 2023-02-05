@@ -12,7 +12,7 @@ public struct HTTPRequest: Sendable {
     public var query = HTTPQuery()
     public var headers = HTTPHeaders()
     
-    private var options = [ObjectIdentifier: any Sendable]()
+    public var options = HTTPOptions()
     
     public var body: (any HTTPBody)?
     
@@ -39,16 +39,7 @@ public struct HTTPRequest: Sendable {
     }
     
     public subscript<O: HTTPOption>(option type: O.Type) -> O.Value {
-        get {
-            let id = ObjectIdentifier(type)
-            if let override = options[id] as? O.Value {
-                return override
-            }
-            return O.defaultValue
-        }
-        set {
-            let id = ObjectIdentifier(type)
-            options[id] = newValue
-        }
+        get { options[type] }
+        set { options[type] = newValue }
     }
 }
