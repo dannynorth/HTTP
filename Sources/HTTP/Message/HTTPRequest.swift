@@ -7,7 +7,8 @@ public struct HTTPRequest: Sendable {
     public var method: HTTPMethod = .get
     
     private var components = URLComponents()
-    private var headers = [HTTPHeader: [String]]()
+    private var headers = HTTPHeaders()
+    private var options = [ObjectIdentifier: any Sendable]()
     
     public var body: (any HTTPBody)?
     
@@ -31,28 +32,26 @@ public struct HTTPRequest: Sendable {
     }
     
     public subscript(header name: HTTPHeader) -> String? {
-        get {
-            return headers[name]?.first
-        }
-        set {
-            if let newValue {
-                headers[name] = [newValue]
-            } else {
-                headers.removeValue(forKey: name)
-            }
-        }
+        get { headers.firstValue(for: name) }
+        set { headers.setValue(newValue, for: name) }
     }
     
     public subscript(headers name: HTTPHeader) -> [String] {
+        get { headers[name] }
+        set { headers[name] = newValue }
+    }
+    
+    public subscript<O: HTTPOption>(option type: O.Type) -> O.Value {
         get {
-            return headers[name] ?? []
+            let id = ObjectIdentifier(type)
+            if let override = options[id] as? O.Value {
+                return override
+            }
+            return O.defaultValue
         }
         set {
-            if newValue.isEmpty {
-                headers.removeValue(forKey: name)
-            } else {
-                headers[name] = newValue
-            }
+            let id = ObjectIdentifier(type)
+            options[id] = newValue
         }
     }
 }

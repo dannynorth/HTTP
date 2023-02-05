@@ -16,6 +16,17 @@ extension HTTPLoader {
         await LoaderChain.shared.setNextLoader(loader, for: self)
     }
     
+    public func withNextLoader(_ request: HTTPRequest, perform: (HTTPRequest, HTTPLoader) async -> HTTPResult) async -> HTTPResult {
+        
+        guard let next = await nextLoader else {
+            let error = HTTPError(code: .cannotConnect, request: request, message: "\(type(of: self)) does not have a nextLoader")
+            return .failure(error)
+        }
+        
+        return await perform(request, next)
+        
+    }
+    
 }
 
 precedencegroup HTTPLoaderChainingPrecedence {

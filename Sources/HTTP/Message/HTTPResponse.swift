@@ -1,4 +1,4 @@
-public struct HTTPResponse {
+public struct HTTPResponse: Sendable {
     
     public let request: HTTPRequest
     
