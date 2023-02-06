@@ -1,36 +1,49 @@
-internal actor LoaderChain {
+import os
+
+internal class LoaderChain {
     
     static let shared = LoaderChain()
     
-    private init() { }
+    private typealias State = [ObjectIdentifier: HTTPLoader]
     
     // BUG: this will retain loaders indefinitely
-    private var chain = Dictionary<ObjectIdentifier, HTTPLoader>()
+    private var lock: OSAllocatedUnfairLock<State>
+    
+    private init() {
+        lock = OSAllocatedUnfairLock(initialState: [:])
+    }
     
     func nextLoader(for loader: HTTPLoader) -> HTTPLoader? {
-        let id = ObjectIdentifier(loader)
-        return chain[id]
+        return lock.withLock { state in
+            let id = ObjectIdentifier(loader)
+            return state[id]
+        }
     }
     
     func setNextLoader(_ next: HTTPLoader?, for loader: HTTPLoader) {
-        let id = ObjectIdentifier(loader)
-        
-        if let n = next {
-            
-            let cycleDetection = sequence(first: loader, next: { l -> HTTPLoader? in
-                let loaderID = ObjectIdentifier(l)
-                return self.chain[loaderID]
-            })
-            
-            for next in cycleDetection {
-                if next === n { fatalError("Cycle detected while setting the nextLoader") }
+        lock.withLock { state in
+            let id = ObjectIdentifier(loader)
+            if let n = next {
+                var seen = Set<ObjectIdentifier>()
+                seen.insert(id)
+                
+                var current = id
+                while let nextLoader = state[current] {
+                    let nextID = ObjectIdentifier(nextLoader)
+                    if seen.contains(nextID) {
+                        fatalError("Cycle detected while setting the nextLoader")
+                    } else {
+                        seen.insert(nextID)
+                        current = nextID
+                    }
+                }
+
+                state[id] = n                
+            } else {
+                state.removeValue(forKey: id)
             }
-            
-            chain[id] = n
-            
-        } else {
-            chain.removeValue(forKey: id)
         }
+        
     }
     
 }
