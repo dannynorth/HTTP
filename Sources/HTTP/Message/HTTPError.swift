@@ -1,6 +1,7 @@
 public struct HTTPError: Error {
     
     public enum Code {
+        case cancelled
         case cannotConnect
         case invalidRequest
         case invalidResponse
