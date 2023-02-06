@@ -3,6 +3,7 @@ public struct HTTPError: Error {
     public enum Code {
         case cannotConnect
         case invalidRequest
+        case invalidResponse
         case unknown
     }
     
