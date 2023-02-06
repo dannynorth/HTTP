@@ -47,8 +47,23 @@ internal class URLSessionAdapter {
     // URLSession___Delegate shims
     
     fileprivate func task(_ task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        print(#function, task, response, request)
-        return request
+        
+        guard let originalRequest = states[task.taskIdentifier]?.request else {
+            return nil
+        }
+        
+        guard let handler = originalRequest.options.redirectionHandler else {
+            return request
+        }
+        
+        let httpResponse = HTTPResponse(request: originalRequest, response: response)
+        let proposed = HTTPRequest(request: request)
+        
+        let actual = await handler.handleRedirection(for: originalRequest,
+                                                     response: httpResponse,
+                                                     proposedRedirection: proposed)
+        
+        return actual?.convertToURLRequest()
     }
     
     fileprivate func task(_ task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
