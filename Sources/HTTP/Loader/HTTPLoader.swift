@@ -14,7 +14,9 @@ extension HTTPLoader {
     public func withNextLoader(_ request: HTTPRequest, perform: (HTTPRequest, HTTPLoader) async -> HTTPResult) async -> HTTPResult {
         
         guard let next = nextLoader else {
-            let error = HTTPError(code: .cannotConnect, request: request, message: "\(type(of: self)) does not have a nextLoader")
+            let error = HTTPError(code: .cannotConnect,
+                                  request: request,
+                                  message: "\(type(of: self)) does not have a nextLoader")
             return .failure(error)
         }
         

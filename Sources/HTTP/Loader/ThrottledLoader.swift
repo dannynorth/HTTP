@@ -1,4 +1,4 @@
-public actor Throttle: HTTPLoader {
+public actor ThrottledLoader: HTTPLoader {
     
     public var maximumNumberOfTasks: Int
     
