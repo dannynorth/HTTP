@@ -1,29 +1,25 @@
 import Foundation
 
-public enum AuthenticationChallengeResponse {
+public enum HTTPAuthenticationChallengeResponse {
     case cancelRequest
     case performDefaultAction
     case rejectProtectionSpace
     case useCredential(URLCredential)
 }
 
-public protocol AuthenticationChallengeHandler {
-    func evaluate(_ challenge: URLAuthenticationChallenge, for request: HTTPRequest) async -> AuthenticationChallengeResponse
+public protocol HTTPAuthenticationChallengeHandler {
+    func evaluate(_ challenge: URLAuthenticationChallenge, for request: HTTPRequest) async -> HTTPAuthenticationChallengeResponse
 }
 
 extension HTTPOptions {
     
-    public var authenticationChallengeHandler: any AuthenticationChallengeHandler {
-        get { self[AuthenticationChallengeOption.self] }
-        set { self[AuthenticationChallengeOption.self] = newValue }
+    public var authenticationChallengeHandler: (any HTTPAuthenticationChallengeHandler)? {
+        get { self[HTTPAuthenticationChallengeOption.self] }
+        set { self[HTTPAuthenticationChallengeOption.self] = newValue }
     }
     
 }
 
-private struct AuthenticationChallengeOption: HTTPOption, AuthenticationChallengeHandler  {
-    static let defaultValue: any AuthenticationChallengeHandler = AuthenticationChallengeOption()
-    
-    func evaluate(_ challenge: URLAuthenticationChallenge, for request: HTTPRequest) async -> AuthenticationChallengeResponse {
-        return .performDefaultAction
-    }
+private enum HTTPAuthenticationChallengeOption: HTTPOption {
+    static let defaultValue: (any HTTPAuthenticationChallengeHandler)? = nil
 }

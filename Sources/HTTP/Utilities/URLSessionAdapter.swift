@@ -16,55 +16,15 @@ internal class URLSessionAdapter {
     }
     
     func execute(_ request: HTTPRequest) async -> HTTPResult {
-        switch urlRequest(for: request) {
-        case .success(let urlRequest):
+        if let urlRequest = request.convertToURLRequest() {
             let task = session.dataTask(with: urlRequest)
             return await self.execute(task, for: request)
-                
-        case .failure(let error):
-            return .failure(error)
-        }
-    }
-    
-    private func urlRequest(for request: HTTPRequest) -> Result<URLRequest, HTTPError> {
-        var components = URLComponents()
-        components.scheme = "https"
-        
-        guard let host = request.host else {
+        } else {
             let err = HTTPError(code: .invalidRequest,
                                 request: request,
-                                message: "Request has no host")
+                                message: "Could not convert request to URLRequest")
             return .failure(err)
         }
-        components.host = host
-        components.path = request.path ?? ""
-        components.fragment = request.fragment
-        components.queryItems = request.query.map { name, value in
-            return URLQueryItem(name: name, value: value.isEmpty ? nil : value)
-        }
-        
-        guard let url = components.url else {
-            let err = HTTPError(code: .invalidRequest,
-                                request: request,
-                                message: "Cannot form URL")
-            return .failure(err)
-        }
-        
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = request.method.rawValue
-        
-        for (header, value) in request.headers {
-            urlRequest.addValue(value, forHTTPHeaderField: header.rawValue)
-        }
-        
-        if let body = request.body {
-            for (header, value) in body.headers {
-                urlRequest.addValue(value, forHTTPHeaderField: header.rawValue)
-            }
-            // TODO: make the body stream
-        }
-        
-        return .success(urlRequest)
     }
     
     // this value is only accessed on the delegate's queue
@@ -94,10 +54,13 @@ internal class URLSessionAdapter {
     fileprivate func task(_ task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         
         guard let request = states[task.taskIdentifier]?.request else {
+            return (.cancelAuthenticationChallenge, nil)
+        }
+        
+        guard let handler = request.options.authenticationChallengeHandler else {
             return (.performDefaultHandling, nil)
         }
         
-        let handler = request.options.authenticationChallengeHandler
         let response = await handler.evaluate(challenge, for: request)
         
         switch response {
@@ -158,27 +121,9 @@ internal class URLSessionAdapter {
             return .cancel
         }
         
-        let status = HTTPStatus(rawValue: httpResponse.statusCode)
-        var headers = HTTPHeaders()
+        let response = HTTPResponse(request: request, response: httpResponse)
         
-        for (anyHeader, anyValue) in httpResponse.allHeaderFields {
-            let header = HTTPHeader(rawValue: anyHeader.description)
-            if let str = anyValue as? String {
-                headers.addValue(str, for: header)
-            } else if let strs = anyValue as? [String] {
-                for str in strs {
-                    headers.addValue(str, for: header)
-                }
-            } else {
-                print("UNKNOWN HEADER VALUE", anyValue)
-            }
-        }
-        
-        
-        states[dataTask.taskIdentifier]?.response = HTTPResponse(request: request,
-                                                                 status: status,
-                                                                 headers: headers,
-                                                                 body: nil)
+        states[dataTask.taskIdentifier]?.response = response
         
         return .allow
         
