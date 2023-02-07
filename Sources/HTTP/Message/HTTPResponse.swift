@@ -20,3 +20,11 @@ public struct HTTPResponse: Sendable {
     }
     
 }
+
+extension HTTPResponse {
+    
+    public static func ok(_ request: HTTPRequest) -> HTTPResponse {
+        return .init(request: request, status: .ok)
+    }
+    
+}

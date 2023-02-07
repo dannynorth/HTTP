@@ -3,10 +3,13 @@ public actor ManualLoader: HTTPLoader {
     public typealias ManualHandler = (HTTPRequest) async -> HTTPResult
     
     private var next = [ManualHandler]()
-    
-    public var defaultHandler: ManualHandler?
+    private var defaultHandler: ManualHandler?
     
     public init() { }
+    
+    public func setDefaultHandler(_ handler: @escaping ManualHandler) {
+        self.defaultHandler = handler
+    }
     
     @discardableResult
     public func then(_ perform: @escaping ManualHandler) -> Self {

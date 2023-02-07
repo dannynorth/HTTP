@@ -1,12 +1,16 @@
 public actor ThrottledLoader: HTTPLoader {
     
-    public var maximumNumberOfTasks: Int
+    private var maximumNumberOfTasks: Int
     
     private var ongoingCount = 0
     private var pending = [UnsafeContinuation<Void, Never>]()
     
     public init(maximumNumberOfTasks: Int = Int.max) {
         self.maximumNumberOfTasks = maximumNumberOfTasks
+    }
+    
+    public func setMaximumNumberOfTasks(_ max: Int) {
+        self.maximumNumberOfTasks = max
     }
     
     public func load(request: HTTPRequest) async -> HTTPResult {
