@@ -107,10 +107,7 @@ internal class URLSessionAdapter {
         let result: HTTPResult
         
         if let error {
-            let err = HTTPError(code: .unknown,
-                                request: state.request,
-                                response: state.response,
-                                underlyingError: error)
+            let err = HTTPError(error: error, request: state.request, response: state.response)
             result = .failure(err)
         } else if var response = state.response {
             result = .success(response)
