@@ -3,10 +3,10 @@ import Foundation
 internal class URLSessionAdapter {
     
     private let session: URLSession
-    private let delegate: SessionDelegate
+    private let delegate: URLSessionAdapterDelegate
     
     init(configuration: URLSessionConfiguration) {
-        let delegate = SessionDelegate()
+        let delegate = URLSessionAdapterDelegate()
         let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: delegate.queue)
         
         self.session = session
@@ -28,14 +28,14 @@ internal class URLSessionAdapter {
     }
     
     // this value is only accessed on the delegate's queue
-    private var states = [Int: TaskState]()
+    private var states = [Int: URLSessionTaskState]()
     
     private func execute(_ task: URLSessionDataTask, for request: HTTPRequest) async -> HTTPResult {
         return await withUnsafeContinuation { continuation in
             delegate.queue.addOperation {
-                let state = TaskState(request: request,
-                                      task: task,
-                                      continuation: continuation)
+                let state = URLSessionTaskState(request: request,
+                                                task: task,
+                                                continuation: continuation)
                 
                 self.states[task.taskIdentifier] = state
                 
@@ -46,7 +46,7 @@ internal class URLSessionAdapter {
     
     // URLSession___Delegate shims
     
-    fileprivate func task(_ task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
+    func task(_ task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
         
         guard let originalRequest = states[task.taskIdentifier]?.request else {
             return nil
@@ -66,7 +66,7 @@ internal class URLSessionAdapter {
         return actual?.convertToURLRequest()
     }
     
-    fileprivate func task(_ task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+    func task(_ task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         
         guard let request = states[task.taskIdentifier]?.request else {
             return (.cancelAuthenticationChallenge, nil)
@@ -87,7 +87,7 @@ internal class URLSessionAdapter {
         
     }
     
-    fileprivate func task(needsNewBodyStream task: URLSessionTask) async -> InputStream? {
+    func task(needsNewBodyStream task: URLSessionTask) async -> InputStream? {
         guard let state = states[task.taskIdentifier] else { return nil }
         guard let body = state.request.body else { return nil }
         
@@ -95,11 +95,11 @@ internal class URLSessionAdapter {
         return nil
     }
     
-    fileprivate func task(_ task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+    func task(_ task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
         
     }
     
-    fileprivate func task(_ task: URLSessionTask, didCompleteWithError error: Error?) {
+    func task(_ task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let state = states.removeValue(forKey: task.taskIdentifier) else {
             return
         }
@@ -110,6 +110,7 @@ internal class URLSessionAdapter {
             let err = HTTPError(error: error, request: state.request, response: state.response)
             result = .failure(err)
         } else if var response = state.response {
+            // TODO: set the response body
             result = .success(response)
         } else {
             let err = HTTPError(code: .unknown,
@@ -123,7 +124,7 @@ internal class URLSessionAdapter {
     
     // MARK: - URLSessionDataDelegate
     
-    fileprivate func task(_ dataTask: URLSessionDataTask, didReceive response: URLResponse) async -> URLSession.ResponseDisposition {
+    func task(_ dataTask: URLSessionDataTask, didReceive response: URLResponse) async -> URLSession.ResponseDisposition {
         
         guard let httpResponse = response as? HTTPURLResponse else {
             return .cancel
@@ -138,80 +139,9 @@ internal class URLSessionAdapter {
         states[dataTask.taskIdentifier]?.response = response
         
         return .allow
-        
     }
     
-    fileprivate func task(_ dataTask: URLSessionDataTask, didReceive data: Data) {
+    func task(_ dataTask: URLSessionDataTask, didReceive data: Data) {
         print(#function, dataTask, data.count, "bytes")
-    }
-}
-
-private struct TaskState {
-    let request: HTTPRequest
-    let task: URLSessionDataTask
-    
-    var response: HTTPResponse?
-    
-    var continuation: UnsafeContinuation<HTTPResult, Never>
-}
-
-private class SessionDelegate: NSObject, URLSessionTaskDelegate, URLSessionDataDelegate {
-    
-    let queue: OperationQueue
-    weak var adapter: URLSessionAdapter?
-    
-    override init() {
-        self.queue = OperationQueue()
-        super.init()
-        
-        self.queue.name = "\(type(of: self))"
-    }
-    
-    // MARK: - URLSessionTaskDelegate
-    
-    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        guard let adapter else {
-            return nil
-        }
-        
-        return await adapter.task(task, willPerformHTTPRedirection: response, newRequest: request)
-    }
-    
-    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
-        guard let adapter else {
-            return (.cancelAuthenticationChallenge, nil)
-        }
-        
-        return await adapter.task(task, didReceive: challenge)
-    }
-    
-    func urlSession(_ session: URLSession, needNewBodyStreamForTask task: URLSessionTask) async -> InputStream? {
-        guard let adapter else {
-            return nil
-        }
-        
-        return await adapter.task(needsNewBodyStream: task)
-    }
-    
-    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
-        adapter?.task(task, didSendBodyData: bytesSent, totalBytesSent: totalBytesSent, totalBytesExpectedToSend: totalBytesExpectedToSend)
-    }
-    
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        adapter?.task(task, didCompleteWithError: error)
-    }
-    
-    // MARK: - URLSessionDataDelegate
-    
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse) async -> URLSession.ResponseDisposition {
-        guard let adapter else {
-            return .cancel
-        }
-        
-        return await adapter.task(dataTask, didReceive: response)
-    }
-    
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        adapter?.task(dataTask, didReceive: data)
     }
 }
