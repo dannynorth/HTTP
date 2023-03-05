@@ -1,8 +1,8 @@
 import Foundation
 
-typealias Completion = () -> Void
-typealias CancellationHandler = () -> Void
-typealias ResultHandler = (HTTPResult) -> Void
+typealias Completion = () async -> Void
+typealias CancellationHandler = () async -> Void
+typealias ResultHandler = (HTTPResult) async -> Void
 
 internal protocol HTTPTaskState {
     var result: HTTPResult? { get }
@@ -37,7 +37,7 @@ internal struct OnGoing: HTTPTaskState {
         let nextState = Finished(_result: result, cancelled: true)
         
         let completions = cancellationHandlers.reversed() + resultHandlers.reversed().map { h in
-            { h(result) }
+            { await h(result) }
         }
         return (nextState, completions)
     }
@@ -45,7 +45,7 @@ internal struct OnGoing: HTTPTaskState {
     func complete(with result: HTTPResult) -> (HTTPTaskState, [Completion]) {
         let nextState = Finished(_result: result, cancelled: false)
         let completions = resultHandlers.reversed().map { h in
-            { h(result) }
+            { await h(result) }
         }
         return (nextState, completions)
     }
@@ -62,7 +62,7 @@ internal struct Finished: HTTPTaskState {
     }
     
     func addResultHandler(_ handler: @escaping ResultHandler) -> Completion? {
-        return { handler(_result) }
+        return { await handler(_result) }
     }
     
     func cancel(_ request: HTTPRequest) -> (HTTPTaskState, [Completion]) {

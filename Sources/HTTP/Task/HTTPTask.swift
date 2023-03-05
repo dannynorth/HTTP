@@ -30,28 +30,38 @@ public actor HTTPTask {
         request = newRequest
     }
     
-    public func addCancellationHandler(_ handler: @escaping () -> Void) {
+    public func addCancellationHandler(_ handler: @escaping () -> Void) async {
+        let handler: () async -> Void = { handler() }
+        await self.addCancellationHandler(handler)
+    }
+    
+    public func addCancellationHandler(_ handler: @escaping () async -> Void) async {
         if let work = state.addCancellationHandler(handler) {
-            work()
+            await work()
         }
     }
     
-    public func addResultHandler(_ handler: @escaping (HTTPResult) -> Void) {
+    public func addResultHandler(_ handler: @escaping (HTTPResult) -> Void) async {
+        let handler: (HTTPResult) async -> Void = { handler($0) }
+        await self.addResultHandler(handler)
+    }
+    
+    public func addResultHandler(_ handler: @escaping (HTTPResult) async -> Void) async {
         if let work = state.addResultHandler(handler) {
-            work()
+            await work()
         }
     }
     
-    public func cancel() {
+    public func cancel() async {
         let (newState, work) = state.cancel(request)
         state = newState
-        for item in work { item() }
+        for item in work { await item() }
     }
     
-    public func _complete(with result: HTTPResult) {
+    public func _complete(with result: HTTPResult) async {
         let (newState, work) = state.complete(with: result)
         state = newState
-        for item in work { item() }
+        for item in work { await item() }
     }
     
 }

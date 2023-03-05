@@ -2,25 +2,25 @@ import Foundation
 
 extension HTTPTask {
     
-    public func fail(_ error: HTTPError) {
-        self._complete(with: .failure(error))
+    public func fail(_ error: HTTPError) async {
+        await self._complete(with: .failure(error))
     }
     
-    public func fail(_ code: HTTPError.Code, response: HTTPResponse? = nil, underlyingError: Error? = nil) {
+    public func fail(_ code: HTTPError.Code, response: HTTPResponse? = nil, underlyingError: Error? = nil) async {
         let error = HTTPError(code: code, request: request, response: response, underlyingError: underlyingError)
-        self._complete(with: .failure(error))
+        await self._complete(with: .failure(error))
     }
     
-    public func succeed(_ response: HTTPResponse) {
-        self._complete(with: .success(response))
+    public func succeed(_ response: HTTPResponse) async {
+        await self._complete(with: .success(response))
     }
     
-    public func ok() {
+    public func ok() async {
         let response = HTTPResponse(request: self.request, status: .ok)
-        self._complete(with: .success(response))
+        await self._complete(with: .success(response))
     }
     
-    public func ok<Body: Encodable>(json: Body) {
+    public func ok<Body: Encodable>(json: Body) async {
         let result = HTTPResult(request: self.request) {
             let body = try JSONEncoder().encode(json)
             var headers = HTTPHeaders()
@@ -30,12 +30,12 @@ extension HTTPTask {
                                 headers: headers,
                                 body: DataBody(data: body, headers: .init()))
         }
-        self._complete(with: result)
+        await self._complete(with: result)
     }
     
-    public func internalServerError() {
+    public func internalServerError() async {
         let response = HTTPResponse(request: self.request, status: .internalServerError)
-        self._complete(with: .success(response))
+        await self._complete(with: .success(response))
     }
     
 }

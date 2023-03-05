@@ -34,4 +34,23 @@ extension HTTPResult {
         }
     }
     
+    public func apply(request: HTTPRequest) -> HTTPResult {
+        switch self {
+            case .failure(let error):
+                let remade = HTTPError(code: error.code,
+                                       request: request,
+                                       response: error.response,
+                                       message: error.message,
+                                       underlyingError: error.underlyingError)
+                return .failure(remade)
+                
+            case .success(let response):
+                let remade = HTTPResponse(request: request,
+                                          status: response.status,
+                                          headers: response.headers,
+                                          body: response.body)
+                return .success(remade)
+        }
+    }
+    
 }
