@@ -4,7 +4,7 @@ public actor DeduplicatingLoader: HTTPLoader {
     
     private var ongoingTasks = [String: HTTPTask]()
     
-    public nonisolated init() { }
+    public init() { }
     
     public func load(task: HTTPTask) async -> HTTPResult {
         let dedupeIdentifier = await task.request.options.deduplicationIdentifier
