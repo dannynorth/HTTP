@@ -1,4 +1,27 @@
-public struct HTTPHeader: RawRepresentable, Hashable, Sendable {
+public struct HTTPHeader: Hashable, Sendable, ExpressibleByStringLiteral {
+    
+    public static func ==(lhs: Self, rhs: Self) -> Bool {
+        return lhs.normalized == rhs.normalized
+    }
+    
+    private let normalized: String
+    public let rawValue: String
+    
+    public init(rawValue: String) {
+        self.normalized = rawValue.lowercased()
+        self.rawValue = rawValue
+    }
+    
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(normalized)
+    }
+}
+
+extension HTTPHeader {
     
     public static let accept = HTTPHeader(rawValue: "Accept")
     public static let acceptEncoding = HTTPHeader(rawValue: "Accept-Encoding")
@@ -10,59 +33,9 @@ public struct HTTPHeader: RawRepresentable, Hashable, Sendable {
     public static let contentType = HTTPHeader(rawValue: "Content-Type")
     public static let cookie = HTTPHeader(rawValue: "Cookie")
     public static let date = HTTPHeader(rawValue: "Date")
-    public static let etag = HTTPHeader(verbatim: "ETag")
+    public static let etag = HTTPHeader(rawValue: "ETag")
     public static let host = HTTPHeader(rawValue: "Host")
     public static let location = HTTPHeader(rawValue: "Location")
     public static let userAgent = HTTPHeader(rawValue: "User-Agent")
     
-    public static func normalizeHeaderName(_ name: String) -> String {
-        return name.split(separator: "-")
-            .map {
-                let first = $0.first?.uppercased() ?? ""
-                let rest = $0.dropFirst().lowercased()
-                return first + rest
-            }
-            .joined(separator: "-")
-    }
-    
-    public let rawValue: String
-    
-    public init(rawValue: String) {
-        self.rawValue = HTTPHeader.normalizeHeaderName(rawValue)
-    }
-    
-    public init(verbatim: String) {
-        self.rawValue = verbatim
-    }
-    
-}
-
-public struct HTTPHeaders: Sendable, Sequence {
-    
-    private var pairs = Pairs<HTTPHeader, String>()
-    
-    public init() { }
-    
-    public subscript(name: HTTPHeader) -> [String] {
-        get { pairs[name] }
-        set { pairs[name] = newValue }
-    }
-    
-    public func firstValue(for header: HTTPHeader) -> String? {
-        pairs.firstValue(for: header)
-    }
-    
-    public mutating func setValue(_ value: String?, for header: HTTPHeader) {
-        pairs.setValue(value, for: header)
-    }
-    
-    public mutating func addValue(_ value: String, for header: HTTPHeader) {
-        pairs.addValue(value, for: header)
-    }
-    
-    public typealias Element = (HTTPHeader, String)
-    
-    public func makeIterator() -> IndexingIterator<Array<Element>> {
-        return pairs.makeIterator()
-    }
 }

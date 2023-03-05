@@ -2,7 +2,7 @@ import Foundation
 
 internal struct URLSessionTaskState {
     let httpRequest: HTTPRequest
-    let httpTask: HTTPTask
+    let token: HTTPRequestToken
     
     let dataTask: URLSessionDataTask
     

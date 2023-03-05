@@ -2,43 +2,41 @@ import Foundation
 
 public actor DeduplicatingLoader: HTTPLoader {
     
-    private var ongoingTasks = [String: HTTPTask]()
+    private typealias DeduplicationHandlers = (HTTPResult) -> Void
+    private var ongoingRequests = [String: [DeduplicationHandlers]]()
     
     public init() { }
     
-    public func load(task: HTTPTask) async -> HTTPResult {
-        let dedupeIdentifier = await task.request.options.deduplicationIdentifier
-        
-        guard let dedupeIdentifier else {
+    public func load(request: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {
+        guard let dedupeIdentifier = request[option: \.deduplicationIdentifier] else {
             // no deduplicationIdentifier; task will not be deduped
-            return await withNextLoader(task) { task, next in
-                return await next.load(task: task)
+            return await withNextLoader(for: request) { next in
+                return await next.load(request: request, token: token)
             }
         }
         
-        if let existingTask = ongoingTasks[dedupeIdentifier] {
-            return await result(of: existingTask, for: task)
+        if ongoingRequests[dedupeIdentifier] != nil {
+            let result = await result(of: dedupeIdentifier)
+            return result.apply(request: request)
         } else {
-            // there's no task with this identifier
-            ongoingTasks[dedupeIdentifier] = task
-            let result = await withNextLoader(task) { task, next in
-                return await next.load(task: task)
+            ongoingRequests[dedupeIdentifier] = []
+            let result = await withNextLoader(for: request) { next in
+                return await next.load(request: request, token: token)
             }
-            ongoingTasks[dedupeIdentifier] = nil
+            let handlers = ongoingRequests.removeValue(forKey: dedupeIdentifier)
+            for handler in (handlers ?? []) {
+                handler(result)
+            }
+            
             return result
         }
         
     }
     
-    private func result(of existingTask: HTTPTask, for task: HTTPTask) async -> HTTPResult {
+    private func result(of identifier: String) async -> HTTPResult {
+        // TODO: cancelling the task should de-register this
         return await withUnsafeContinuation { continuation in
-            Task {
-                await existingTask.addResultHandler { result in
-                    let appliedResult = result.apply(request: await task.request)
-                    await task._complete(with: appliedResult)
-                    continuation.resume(returning: result)
-                }
-            }
+            self.ongoingRequests[identifier]?.append({ continuation.resume(returning: $0) })
         }
     }
     

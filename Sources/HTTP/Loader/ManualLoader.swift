@@ -1,6 +1,6 @@
 public actor ManualLoader: HTTPLoader {
     
-    public typealias ManualHandler = (HTTPTask) async -> Void
+    public typealias ManualHandler = (HTTPRequest, HTTPRequestToken) async -> HTTPResult
     
     private var next = [ManualHandler]()
     private var defaultHandler: ManualHandler?
@@ -17,25 +17,18 @@ public actor ManualLoader: HTTPLoader {
         return self
     }
     
-    public func load(task: HTTPTask) async -> HTTPResult {
+    public func load(request: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {
         if next.isEmpty == false {
             let handler = next.removeFirst()
-            await handler(task)
-            
-            if let result = await task.result {
-                return result
-            }
+            return await handler(request, token)
         }
         
         if let defaultHandler {
-            await defaultHandler(task)
-            if let result = await task.result {
-                return result
-            }
+            return await defaultHandler(request, token)
         }
         
-        return await withNextLoader(task) { task, next in
-            return await next.load(task: task)
+        return await withNextLoader(for: request) { next in
+            return await next.load(request: request, token: token)
         }
     }
     

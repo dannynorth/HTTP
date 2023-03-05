@@ -13,22 +13,22 @@ public actor ThrottledLoader: HTTPLoader {
         self.maximumNumberOfTasks = max(count, 0)
     }
     
-    public func load(task: HTTPTask) async -> HTTPResult {
-        let request = await task.request
-        if request.options.throttleBehavior == .unthrottled {
-            return await withNextLoader(task) { await $1.load(task: $0) }
+    public func load(request: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {
+        if request[option: \.throttleBehavior] == .unthrottled {
+            return await withNextLoader(for: request) { next in
+                return await next.load(request: request, token: token)
+            }
         }
         
         if maximumNumberOfTasks <= 0 {
-            // everything is paused!
             print("Received request \(request.id) but \(type(of: self)) is paused (maximumNumberOfTasks = 0)")
         }
         
         await waitForCapacity()
         
-        return await withNextLoader(task) { task, next in
+        return await withNextLoader(for: request) { next in
             ongoingCount += 1
-            let result = await next.load(task: task)
+            let result = await next.load(request: request, token: token)
             ongoingCount -= 1
             signalAvailableCapacity()
             return result

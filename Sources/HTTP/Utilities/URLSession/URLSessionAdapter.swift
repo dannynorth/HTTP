@@ -15,39 +15,35 @@ internal class URLSessionAdapter {
         delegate.adapter = self
     }
     
-    func execute(_ task: HTTPTask) async -> HTTPResult {
-        let request = await task.request
+    func execute(_ request: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {
         if let urlRequest = request.convertToURLRequest() {
-            return await self.execute(urlRequest, httpRequest: request, for: task)
+            return await self.execute(urlRequest, httpRequest: request, token: token)
         } else {
             let err = HTTPError(code: .invalidRequest,
                                 request: request,
                                 message: "Could not convert HTTPRequest to URLRequest")
-            let result = HTTPResult.failure(err)
-            await task._complete(with: result)
-            return result
+            return HTTPResult.failure(err)
         }
     }
     
     // this value is only accessed on the delegate's queue
     private var states = [Int: URLSessionTaskState]()
     
-    private func execute(_ urlRequest: URLRequest, httpRequest: HTTPRequest, for task: HTTPTask) async -> HTTPResult {
+    private func execute(_ urlRequest: URLRequest, httpRequest: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {
         return await withUnsafeContinuation { continuation in
             delegate.queue.addOperation {
                 let dataTask = self.session.dataTask(with: urlRequest)
                 let state = URLSessionTaskState(httpRequest: httpRequest,
-                                                httpTask: task,
+                                                token: token,
                                                 dataTask: dataTask,
                                                 continuation: continuation)
                 
                 self.states[dataTask.taskIdentifier] = state
                 dataTask.resume()
                 
-                // if the HTTPTask gets cancelled, the URLSessionDataTask does too
-                Task {
-                    await task.addCancellationHandler { dataTask.cancel() }
-                }
+                // if the token gets cancelled, the URLSessionDataTask does too
+                // if the token has already been cancelled, the data task will cancel immediately
+                token.addCancellationHandler { dataTask.cancel() }
             }
         }
     }
@@ -60,7 +56,7 @@ internal class URLSessionAdapter {
             return nil
         }
         
-        guard let handler = originalRequest.options.redirectionHandler else {
+        guard let handler = originalRequest[option: \.redirectionHandler] else {
             return request
         }
         
@@ -80,7 +76,7 @@ internal class URLSessionAdapter {
             return (.cancelAuthenticationChallenge, nil)
         }
         
-        guard let handler = request.options.authenticationChallengeHandler else {
+        guard let handler = request[option: \.authenticationChallengeHandler] else {
             return (.performDefaultHandling, nil)
         }
         
@@ -126,7 +122,6 @@ internal class URLSessionAdapter {
                                 message: "Task completed, but there was no response")
             result = .failure(err)
         }
-        
         state.continuation.resume(returning: result)
     }
     

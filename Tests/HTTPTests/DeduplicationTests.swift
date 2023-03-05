@@ -15,8 +15,8 @@ class DeduplicationTests: XCTestCase {
         thenCount.expectedFulfillmentCount = 2
         
         await loader
-            .then { try! await Task.sleep(for: .seconds(0.1)); await $0.ok(); thenCount.fulfill() }
-            .then { try! await Task.sleep(for: .seconds(0.1)); await $0.ok(); thenCount.fulfill() }
+            .then { req, _ in try! await Task.sleep(for: .seconds(0.1)); thenCount.fulfill(); return .ok(req) }
+            .then { req, _ in try! await Task.sleep(for: .seconds(0.1)); thenCount.fulfill(); return .ok(req) }
         
         let e1 = expectation(description: "r1")
         Task.detached {
@@ -34,8 +34,8 @@ class DeduplicationTests: XCTestCase {
     }
     
     func testRequestsWithDifferentIDsBothExecute() async throws {
-        let r1 = HTTPRequest.build { $0.options.deduplicationIdentifier = "r1" }
-        let r2 = HTTPRequest.build { $0.options.deduplicationIdentifier = "r2" }
+        let r1 = HTTPRequest.build { $0[option: \.deduplicationIdentifier] = "r1" }
+        let r2 = HTTPRequest.build { $0[option: \.deduplicationIdentifier] = "r2" }
         
         let chain = await DeduplicatingLoader() --> loader
         
@@ -43,8 +43,8 @@ class DeduplicationTests: XCTestCase {
         thenCount.expectedFulfillmentCount = 2
         
         await loader
-            .then { try! await Task.sleep(for: .seconds(0.1)); await $0.ok(); thenCount.fulfill() }
-            .then { try! await Task.sleep(for: .seconds(0.1)); await $0.ok(); thenCount.fulfill() }
+            .then { req, _ in try! await Task.sleep(for: .seconds(0.1)); thenCount.fulfill(); return .ok(req) }
+            .then { req, _ in try! await Task.sleep(for: .seconds(0.1)); thenCount.fulfill(); return .ok(req) }
         
         let e1 = expectation(description: "r1")
         Task.detached {
@@ -62,17 +62,16 @@ class DeduplicationTests: XCTestCase {
     }
     
     func testRequestsWithSameIDsDeduplicate() async throws {
-        let r1 = HTTPRequest.build { $0.options.deduplicationIdentifier = "r1" }
-        let r2 = HTTPRequest.build { $0.options.deduplicationIdentifier = "r1" }
+        let r1 = HTTPRequest.build { $0[option: \.deduplicationIdentifier] = "r1" }
+        let r2 = HTTPRequest.build { $0[option: \.deduplicationIdentifier] = "r1" }
         
         let chain = await DeduplicatingLoader() --> loader
         
         let thenCount = expectation(description: "thens")
-        thenCount.expectedFulfillmentCount = 1
         
         await loader
-            .then { try! await Task.sleep(for: .seconds(0.1)); await $0.ok(); thenCount.fulfill() }
-            .then { XCTFail(); await $0.fail(.cannotConnect); thenCount.fulfill() }
+            .then { req, _ in try! await Task.sleep(for: .seconds(0.1)); thenCount.fulfill(); return .ok(req) }
+            .then { req, _ in XCTFail(); return .failure(.cannotConnect, request: req) }
         
         let e1 = expectation(description: "r1")
         Task.detached {

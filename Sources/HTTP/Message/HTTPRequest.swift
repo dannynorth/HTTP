@@ -42,4 +42,9 @@ public struct HTTPRequest: Sendable {
         get { options[type] }
         set { options[type] = newValue }
     }
+    
+    public subscript<V>(option keyPath: WritableKeyPath<HTTPOptions, V>) -> V {
+        get { options[keyPath: keyPath] }
+        set { options[keyPath: keyPath] = newValue }
+    }
 }

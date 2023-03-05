@@ -4,46 +4,41 @@ public actor RetryLoader: HTTPLoader {
     
     public init() { }
     
-    public func load(task: HTTPTask) async -> HTTPResult {
-        return await withNextLoader(task) { task, next in
-            let request = await task.request
+    public func load(request: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {
+        return await withNextLoader(for: request) { next in
             
-            var strategy: any HTTPRetryStrategy = request.options.retryStrategy ?? NoRetry()
+            var strategy: any HTTPRetryStrategy = request[option: \.retryStrategy] ?? NoRetry()
+            var latestResult: HTTPResult?
             
             while true {
-                // first, check to see if the original task was cancelled or finished
-                // while these attempts are ongoing
-                if let originalResult = await task.result {
-                    return originalResult
+                if token.isCancelled {
+                    return latestResult ?? .failure(HTTPError(code: .cancelled, request: request))
                 }
                 
-                let nextAttempt = HTTPTask(request: request)
-                let attemptResult = await next.load(task: nextAttempt)
+                let attemptResult = await next.load(request: request, token: token)
                 
-                if let error = attemptResult.failure, error.code == .cancelled {
-                    // this attempt was cancelled
+                if attemptResult.failure?.code == .cancelled {
                     return attemptResult
                 } else if let delay = strategy.nextDelay(after: attemptResult) {
-                    // we're going to wait and then try again
                     do {
+                        latestResult = attemptResult
                         try await Task.sleep(for: Duration(delay))
+                        // this will loop around and attempt the request again
+                        // as long as the request hasn't been cancelled
                     } catch {
                         let error = HTTPError(code: .cancelled,
                                               request: request,
                                               response: attemptResult.response,
                                               message: "Async task was cancelled",
                                               underlyingError: error)
-                        let result = HTTPResult.failure(error)
-                        await task._complete(with: result)
-                        return result
+                        return HTTPResult.failure(error)
                     }
                 } else {
-                    // there's no delay for the next attempt, so we're not going to retry
-                    await task._complete(with: attemptResult)
+                    // no retry delay;
                     return attemptResult
                 }
-                
             }
+            
         }
     }
     

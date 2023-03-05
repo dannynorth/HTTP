@@ -13,9 +13,9 @@ class ManualLoaderTests: XCTestCase {
     func testDefaultHandler() async throws {
         let expectation = self.expectation(description: #function)
         
-        await loader.setDefaultHandler({
+        await loader.setDefaultHandler({ req, token in
             expectation.fulfill()
-            await $0.ok()
+            return .ok(req)
         })
         
         let result = await loader.load(request: .init())
@@ -24,12 +24,14 @@ class ManualLoaderTests: XCTestCase {
     }
     
     func testSingleHandler() async {
-        await loader.setDefaultHandler({
+        await loader.setDefaultHandler({ req, token in
             XCTFail()
-            await $0.fail(.cannotConnect)
+            return .failure(.cannotConnect, request: req)
         })
         
-        await loader.then { await $0.ok() }
+        await loader.then { req, token in
+            return .ok(req)
+        }
         
         let result = await loader.load(request: .init())
         if let response = XCTAssertSuccess(result) {
@@ -38,13 +40,13 @@ class ManualLoaderTests: XCTestCase {
     }
     
     func testMultipleHandlers() async {
-        await loader.setDefaultHandler({
+        await loader.setDefaultHandler({ req, token in
             XCTFail()
-            await $0.fail(.cannotConnect)
+            return .failure(.cannotConnect, request: req)
         })
         
-        await loader.then { await $0.ok() }
-        await loader.then { await $0.internalServerError() }
+        await loader.then { req, _ in return .ok(req) }
+        await loader.then { req, _ in return .internalServerError(req) }
         
         XCTAssertSuccess(await loader.load(request: .init()))
         
@@ -56,12 +58,12 @@ class ManualLoaderTests: XCTestCase {
     func testFallbackToDefaultHandler() async throws {
         let expectation = self.expectation(description: #function)
         
-        await loader.setDefaultHandler({
+        await loader.setDefaultHandler({ req, _ in
             expectation.fulfill()
-            await $0.internalServerError()
+            return .internalServerError(req)
         })
         
-        await loader.then { await $0.ok() }
+        await loader.then { req, _ in return .ok(req) }
         
         XCTAssertSuccess(await loader.load(request: .init()))
         
