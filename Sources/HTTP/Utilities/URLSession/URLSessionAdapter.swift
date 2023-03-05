@@ -15,31 +15,39 @@ internal class URLSessionAdapter {
         delegate.adapter = self
     }
     
-    func execute(_ request: HTTPRequest) async -> HTTPResult {
+    func execute(_ task: HTTPTask) async -> HTTPResult {
+        let request = await task.request
         if let urlRequest = request.convertToURLRequest() {
-            let task = session.dataTask(with: urlRequest)
-            return await self.execute(task, for: request)
+            return await self.execute(urlRequest, httpRequest: request, for: task)
         } else {
             let err = HTTPError(code: .invalidRequest,
                                 request: request,
-                                message: "Could not convert request to URLRequest")
-            return .failure(err)
+                                message: "Could not convert HTTPRequest to URLRequest")
+            let result = HTTPResult.failure(err)
+            await task._complete(with: result)
+            return result
         }
     }
     
     // this value is only accessed on the delegate's queue
     private var states = [Int: URLSessionTaskState]()
     
-    private func execute(_ task: URLSessionDataTask, for request: HTTPRequest) async -> HTTPResult {
+    private func execute(_ urlRequest: URLRequest, httpRequest: HTTPRequest, for task: HTTPTask) async -> HTTPResult {
         return await withUnsafeContinuation { continuation in
             delegate.queue.addOperation {
-                let state = URLSessionTaskState(request: request,
-                                                task: task,
+                let dataTask = self.session.dataTask(with: urlRequest)
+                let state = URLSessionTaskState(httpRequest: httpRequest,
+                                                httpTask: task,
+                                                dataTask: dataTask,
                                                 continuation: continuation)
                 
-                self.states[task.taskIdentifier] = state
+                self.states[dataTask.taskIdentifier] = state
+                dataTask.resume()
                 
-                task.resume()
+                // if the HTTPTask gets cancelled, the URLSessionDataTask does too
+                Task {
+                    await task.addCancellationHandler { dataTask.cancel() }
+                }
             }
         }
     }
@@ -48,7 +56,7 @@ internal class URLSessionAdapter {
     
     func task(_ task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
         
-        guard let originalRequest = states[task.taskIdentifier]?.request else {
+        guard let originalRequest = states[task.taskIdentifier]?.httpRequest else {
             return nil
         }
         
@@ -68,7 +76,7 @@ internal class URLSessionAdapter {
     
     func task(_ task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         
-        guard let request = states[task.taskIdentifier]?.request else {
+        guard let request = states[task.taskIdentifier]?.httpRequest else {
             return (.cancelAuthenticationChallenge, nil)
         }
         
@@ -89,7 +97,7 @@ internal class URLSessionAdapter {
     
     func task(needsNewBodyStream task: URLSessionTask) async -> InputStream? {
         guard let state = states[task.taskIdentifier] else { return nil }
-        guard let body = state.request.body else { return nil }
+        guard let body = state.httpRequest.body else { return nil }
         
         print("TODO: create a new input stream for this body", body)
         return nil
@@ -107,14 +115,14 @@ internal class URLSessionAdapter {
         let result: HTTPResult
         
         if let error {
-            let err = HTTPError(error: error, request: state.request, response: state.response)
+            let err = HTTPError(error: error, request: state.httpRequest, response: state.response)
             result = .failure(err)
         } else if var response = state.response {
             // TODO: set the response body
             result = .success(response)
         } else {
             let err = HTTPError(code: .unknown,
-                                request: state.request,
+                                request: state.httpRequest,
                                 message: "Task completed, but there was no response")
             result = .failure(err)
         }
@@ -130,7 +138,7 @@ internal class URLSessionAdapter {
             return .cancel
         }
         
-        guard let request = states[dataTask.taskIdentifier]?.request else {
+        guard let request = states[dataTask.taskIdentifier]?.httpRequest else {
             return .cancel
         }
         

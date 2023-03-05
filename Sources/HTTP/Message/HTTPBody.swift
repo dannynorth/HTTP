@@ -9,8 +9,8 @@ public protocol HTTPBody: Sendable {
 
 extension HTTPBody {
     
-    public var headers: [HTTPHeader: [String]] {
-        return [:]
+    public var headers: HTTPHeaders {
+        return .init()
     }
     
 }

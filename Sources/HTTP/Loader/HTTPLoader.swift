@@ -1,6 +1,7 @@
 public protocol HTTPLoader: Actor {
     
-    func load(request: HTTPRequest) async -> HTTPResult
+    @discardableResult
+    func load(task: HTTPTask) async -> HTTPResult
     
 }
 
@@ -11,16 +12,27 @@ extension HTTPLoader {
         set { LoaderChain.shared.setNextLoader(newValue, for: self) }
     }
     
-    public func withNextLoader(_ request: HTTPRequest, perform: (HTTPRequest, HTTPLoader) async -> HTTPResult) async -> HTTPResult {
+    public func withNextLoader(_ task: HTTPTask, perform: (HTTPTask, HTTPLoader) async -> HTTPResult) async -> HTTPResult {
+        
+        // Only attempt to load the task if it doesn't have a result
+        if let result = await task.result {
+            return result
+        }
         
         guard let next = nextLoader else {
+            let request = await task.request
             let error = HTTPError(code: .cannotConnect,
                                   request: request,
                                   message: "\(type(of: self)) does not have a nextLoader")
             return .failure(error)
         }
         
-        return await perform(request, next)
+        return await perform(task, next)
+    }
+    
+    public func load(request: HTTPRequest) async -> HTTPResult {
+        let task = HTTPTask(request: request)
+        return await load(task: task)
     }
     
 }

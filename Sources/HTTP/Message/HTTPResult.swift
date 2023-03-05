@@ -24,4 +24,14 @@ extension HTTPResult {
         }
     }
     
+    public init(request: HTTPRequest, catching responseProducer: () throws -> HTTPResponse) {
+        do {
+            let response = try responseProducer()
+            self = .success(response)
+        } catch {
+            let error = HTTPError(error: error, request: request)
+            self = .failure(error)
+        }
+    }
+    
 }

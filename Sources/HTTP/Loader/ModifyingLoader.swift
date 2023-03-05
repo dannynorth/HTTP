@@ -18,11 +18,13 @@ public actor ModifyingLoader: HTTPLoader {
         self.responseModifier = responseModifier
     }
     
-    public func load(request: HTTPRequest) async -> HTTPResult {
-        return await withNextLoader(request) { req, next in
-            var copy = req
+    public func load(task: HTTPTask) async -> HTTPResult {
+        return await withNextLoader(task) { task, next in
+            var copy = await task.request
             await requestModifier(&copy)
-            let result = await next.load(request: copy)
+            await task.setRequest(copy)
+            
+            let result = await next.load(task: task)
             if var response = result.success {
                 await responseModifier(&response)
                 return .success(response)

@@ -1,13 +1,12 @@
 import Foundation
 
 internal struct URLSessionTaskState {
-    let queue = AsyncQueue()
+    let httpRequest: HTTPRequest
+    let httpTask: HTTPTask
     
-    let request: HTTPRequest
-    let task: URLSessionDataTask
+    let dataTask: URLSessionDataTask
     
     var response: HTTPResponse?
-    var responseBody: HTTPWriteStream?
     
     var continuation: UnsafeContinuation<HTTPResult, Never>
 }

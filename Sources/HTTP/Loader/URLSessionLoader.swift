@@ -8,8 +8,8 @@ public actor URLSessionLoader: HTTPLoader {
         self.adapter = URLSessionAdapter(configuration: configuration)
     }
     
-    public func load(request: HTTPRequest) async -> HTTPResult {
-        return await adapter.execute(request)
+    public func load(task: HTTPTask) async -> HTTPResult {
+        return await adapter.execute(task)
     }
     
 }

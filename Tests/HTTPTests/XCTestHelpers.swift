@@ -25,3 +25,20 @@ func XCTAssertFailure<T, E: Error>(_ result: Result<T, E>, file: StaticString = 
     }
     
 }
+
+extension XCTestCase {
+    
+    @MainActor
+    func allExpectations(timeout: TimeInterval = 1.0) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            self.waitForExpectations(timeout: timeout, handler: { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            })
+        }
+    }
+    
+}
