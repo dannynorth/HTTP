@@ -11,6 +11,7 @@ public actor ThrottledLoader: HTTPLoader {
     
     public func setMaximumNumberOfTasks(_ count: Int) {
         self.maximumNumberOfTasks = max(count, 0)
+        signalAvailableCapacity()
     }
     
     public func load(request: HTTPRequest, token: HTTPRequestToken) async -> HTTPResult {

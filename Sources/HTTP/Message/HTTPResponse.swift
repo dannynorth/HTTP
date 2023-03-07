@@ -19,6 +19,16 @@ public struct HTTPResponse: Sendable {
         self.body = body
     }
     
+    public subscript(header name: HTTPHeader) -> String? {
+        get { headers.firstValue(for: name) }
+        set { headers.setValue(newValue, for: name) }
+    }
+    
+    public subscript(headers name: HTTPHeader) -> [String] {
+        get { headers[name] }
+        set { headers[name] = newValue }
+    }
+    
 }
 
 extension HTTPResponse {

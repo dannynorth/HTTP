@@ -24,7 +24,7 @@ public actor DeduplicatingLoader: HTTPLoader {
         if let existing = ongoingRequests[dedupeIdentifier] {
             let result = await result(of: dedupeIdentifier, token: token)
             let withHeader = result.modifyResponse { response in
-                response.headers[.xOriginalRequestID] = [existing.originalRequestID.uuidString]
+                response[header: .xOriginalRequestID] = existing.originalRequestID.uuidString
             }
             return withHeader.apply(request: request)
         } else {

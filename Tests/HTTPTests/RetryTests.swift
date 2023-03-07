@@ -20,7 +20,7 @@ class RetryTests: XCTestCase {
         let result = await chain.load(request: r1)
         
         XCTAssertSuccess(result)
-        XCTAssertEqual(result.response?.headers[.xRetryCount], ["0"])
+        XCTAssertEqual(result.response?[header: .xRetryCount], "0")
         try await allExpectations()
     }
     
@@ -64,7 +64,7 @@ class RetryTests: XCTestCase {
         let result = await chain.load(request: r1)
         
         XCTAssertSuccess(result)
-        XCTAssertEqual(result.response?.headers[.xRetryCount], ["2"])
+        XCTAssertEqual(result.response?[header: .xRetryCount], "2")
         try await allExpectations()
     }
     

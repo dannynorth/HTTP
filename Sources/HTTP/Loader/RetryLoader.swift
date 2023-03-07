@@ -47,7 +47,7 @@ public actor RetryLoader: HTTPLoader {
             
             var result = latestResult ?? .failure(HTTPError(code: .internal, request: request))
             result = result.modifyResponse {
-                $0.headers[.xRetryCount] = ["\(attemptCount)"]
+                $0[header: .xRetryCount] = "\(attemptCount)"
             }
             return result
         }
