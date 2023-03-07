@@ -1,10 +1,18 @@
 import Foundation
 
-public enum HTTPAuthenticationChallengeResponse {
-    case cancelRequest
-    case performDefaultAction
-    case rejectProtectionSpace
-    case useCredential(URLCredential)
+public struct HTTPAuthenticationChallengeResponse {
+    public static let cancelRequest = HTTPAuthenticationChallengeResponse(disposition: .cancelAuthenticationChallenge, credential: nil)
+    
+    public static let performDefaultAction = HTTPAuthenticationChallengeResponse(disposition: .performDefaultHandling, credential: nil)
+    
+    public static let rejectProtectionSpace = HTTPAuthenticationChallengeResponse(disposition: .rejectProtectionSpace, credential: nil)
+    
+    public static func useCredential(_ credential: URLCredential) -> HTTPAuthenticationChallengeResponse {
+        return HTTPAuthenticationChallengeResponse(disposition: .useCredential, credential: credential)
+    }
+    
+    internal let disposition: URLSession.AuthChallengeDisposition
+    internal let credential: URLCredential?
 }
 
 public protocol HTTPAuthenticationChallengeHandler {

@@ -81,14 +81,7 @@ internal class URLSessionAdapter {
         }
         
         let response = await handler.evaluate(challenge, for: request)
-        
-        switch response {
-        case .performDefaultAction: return (.performDefaultHandling, nil)
-        case .cancelRequest: return (.cancelAuthenticationChallenge, nil)
-        case .rejectProtectionSpace: return (.rejectProtectionSpace, nil)
-        case .useCredential(let credential): return (.useCredential, credential)
-        }
-        
+        return (response.disposition, response.credential)        
     }
     
     func task(needsNewBodyStream task: URLSessionTask) async -> InputStream? {
