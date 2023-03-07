@@ -1,9 +1,13 @@
-internal struct Pairs<Key: Equatable & Sendable, Value: Sendable>: Sendable {
+internal struct Pairs<Key: Equatable & Sendable, Value: Sendable>: Sendable, ExpressibleByArrayLiteral {
     typealias Element = (Key, Value)
     
     private var values = [Element]()
     
     internal init() { }
+    
+    init(arrayLiteral elements: Element...) {
+        self.values = elements
+    }
     
     internal subscript(key: Key) -> [Value] {
         get { values(for: key) }

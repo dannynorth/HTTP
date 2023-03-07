@@ -2,8 +2,8 @@ import Foundation
 
 public actor DeduplicatingLoader: HTTPLoader {
     
-    private typealias DeduplicationHandlers = (HTTPResult) -> Void
-    private var ongoingRequests = [String: [DeduplicationHandlers]]()
+    private typealias DeduplicationHandler = (HTTPResult) -> Void
+    private var ongoingRequests = [String: Pairs<UUID, DeduplicationHandler>]()
     
     public init() { }
     
@@ -16,15 +16,15 @@ public actor DeduplicatingLoader: HTTPLoader {
         }
         
         if ongoingRequests[dedupeIdentifier] != nil {
-            let result = await result(of: dedupeIdentifier)
+            let result = await result(of: dedupeIdentifier, token: token)
             return result.apply(request: request)
         } else {
-            ongoingRequests[dedupeIdentifier] = []
+            ongoingRequests[dedupeIdentifier] = .init()
             let result = await withNextLoader(for: request) { next in
                 return await next.load(request: request, token: token)
             }
             let handlers = ongoingRequests.removeValue(forKey: dedupeIdentifier)
-            for handler in (handlers ?? []) {
+            for (_, handler) in (handlers ?? []) {
                 handler(result)
             }
             
@@ -33,10 +33,16 @@ public actor DeduplicatingLoader: HTTPLoader {
         
     }
     
-    private func result(of identifier: String) async -> HTTPResult {
-        // TODO: cancelling the task should de-register this
+    private func result(of identifier: String, token: HTTPRequestToken) async -> HTTPResult {
         return await withUnsafeContinuation { continuation in
-            self.ongoingRequests[identifier]?.append({ continuation.resume(returning: $0) })
+            let id = UUID()
+            let handler: DeduplicationHandler = { continuation.resume(returning: $0) }
+            
+            token.addCancellationHandler {
+                self.ongoingRequests[identifier]?.setValue(nil, for: id)
+            }
+            
+            self.ongoingRequests[identifier]?.setValue(handler, for: id)
         }
     }
     
