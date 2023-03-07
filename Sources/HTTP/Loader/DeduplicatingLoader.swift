@@ -3,7 +3,13 @@ import Foundation
 public actor DeduplicatingLoader: HTTPLoader {
     
     private typealias DeduplicationHandler = (HTTPResult) -> Void
-    private var ongoingRequests = [String: Pairs<UUID, DeduplicationHandler>]()
+    
+    private struct DeduplicationList {
+        let originalRequestID: UUID
+        var dedupedTasks = Pairs<UUID, DeduplicationHandler>()
+    }
+    
+    private var ongoingRequests = [String: DeduplicationList]()
     
     public init() { }
     
@@ -15,16 +21,19 @@ public actor DeduplicatingLoader: HTTPLoader {
             }
         }
         
-        if ongoingRequests[dedupeIdentifier] != nil {
+        if let existing = ongoingRequests[dedupeIdentifier] {
             let result = await result(of: dedupeIdentifier, token: token)
-            return result.apply(request: request)
+            let withHeader = result.modifyResponse { response in
+                response.headers[.xOriginalRequestID] = [existing.originalRequestID.uuidString]
+            }
+            return withHeader.apply(request: request)
         } else {
-            ongoingRequests[dedupeIdentifier] = .init()
+            ongoingRequests[dedupeIdentifier] = DeduplicationList(originalRequestID: request.id)
             let result = await withNextLoader(for: request) { next in
                 return await next.load(request: request, token: token)
             }
-            let handlers = ongoingRequests.removeValue(forKey: dedupeIdentifier)
-            for (_, handler) in (handlers ?? []) {
+            let list = ongoingRequests.removeValue(forKey: dedupeIdentifier)
+            for (_, handler) in (list?.dedupedTasks ?? []) {
                 handler(result)
             }
             
@@ -39,11 +48,17 @@ public actor DeduplicatingLoader: HTTPLoader {
             let handler: DeduplicationHandler = { continuation.resume(returning: $0) }
             
             token.addCancellationHandler {
-                self.ongoingRequests[identifier]?.setValue(nil, for: id)
+                self.ongoingRequests[identifier]?.dedupedTasks.setValue(nil, for: id)
             }
             
-            self.ongoingRequests[identifier]?.setValue(handler, for: id)
+            self.ongoingRequests[identifier]?.dedupedTasks.setValue(handler, for: id)
         }
     }
+    
+}
+
+extension HTTPHeader {
+    
+    public static let xOriginalRequestID = HTTPHeader(rawValue: "X-HTTP-Original-Request-ID")
     
 }

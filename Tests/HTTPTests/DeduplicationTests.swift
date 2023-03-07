@@ -81,7 +81,9 @@ class DeduplicationTests: XCTestCase {
         
         let e2 = expectation(description: "r2")
         Task.detached {
-            XCTAssertSuccess(await chain.load(request: r2))
+            let result = await chain.load(request: r2)
+            XCTAssertSuccess(result)
+            XCTAssertEqual(result.response?.headers[.xOriginalRequestID], [r1.id.uuidString])
             e2.fulfill()
         }
         

@@ -10,6 +10,7 @@ public struct HTTPError: Error {
         case invalidResponse
         case cannotDecodeResponse
         case unknown
+        case `internal`
     }
     
     public let code: Code

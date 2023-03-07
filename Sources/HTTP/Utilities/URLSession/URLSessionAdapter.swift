@@ -117,7 +117,7 @@ internal class URLSessionAdapter {
             // TODO: set the response body
             result = .success(response)
         } else {
-            let err = HTTPError(code: .unknown,
+            let err = HTTPError(code: .internal,
                                 request: state.httpRequest,
                                 message: "Task completed, but there was no response")
             result = .failure(err)

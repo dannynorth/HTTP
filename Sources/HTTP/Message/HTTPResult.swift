@@ -45,4 +45,24 @@ extension HTTPResult {
         }
     }
     
+    public func modifyResponse(_ modify: (inout HTTPResponse) -> Void) -> HTTPResult {
+        switch self {
+            case .failure(let error):
+                if var response = error.response {
+                    modify(&response)
+                    let newError = HTTPError(code: error.code,
+                                             request: error.request,
+                                             response: response,
+                                             message: error.message,
+                                             underlyingError: error.underlyingError)
+                    return .failure(newError)
+                } else {
+                    return .failure(error)
+                }
+            case .success(var response):
+                modify(&response)
+                return .success(response)
+        }
+    }
+    
 }
