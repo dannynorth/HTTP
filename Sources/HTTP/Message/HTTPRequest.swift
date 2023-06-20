@@ -21,7 +21,7 @@ public struct HTTPRequest: Sendable {
     public init(method: HTTPMethod = .get, url: URL, body: (any HTTPBody)? = nil) {
         self.method = method
         
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: true)
         
         self.host = components?.host
         self.path = components?.path
