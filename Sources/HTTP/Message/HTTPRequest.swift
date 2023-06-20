@@ -18,6 +18,23 @@ public struct HTTPRequest: Sendable {
     
     public init() { }
     
+    public init(method: HTTPMethod = .get, url: URL, body: (any HTTPBody)? = nil) {
+        self.method = method
+        
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        
+        self.host = components?.host
+        self.path = components?.path
+        self.fragment = components?.fragment
+        
+        self.query = HTTPQuery()
+        for item in components?.queryItems ?? [] {
+            self[query: item.name] = item.value
+        }
+        
+        self.body = body
+    }
+    
     public subscript(header name: HTTPHeader) -> String? {
         get { headers.firstValue(for: name) }
         set { headers.setValue(newValue, for: name) }
