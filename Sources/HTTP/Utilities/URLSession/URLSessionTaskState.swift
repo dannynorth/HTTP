@@ -7,6 +7,7 @@ internal struct URLSessionTaskState {
     let dataTask: URLSessionDataTask
     
     var response: HTTPResponse?
+    var data: Data?
     
     var continuation: UnsafeContinuation<HTTPResult, Never>
 }

@@ -27,3 +27,15 @@ public struct HTTPHeaders: Sendable, Sequence {
         return pairs.makeIterator()
     }
 }
+
+extension HTTPHeaders: ExpressibleByDictionaryLiteral {
+    
+    public init(dictionaryLiteral elements: (HTTPHeader, String)...) {
+        self.init()
+        
+        for (header, value) in elements {
+            self.addValue(value, for: header)
+        }
+    }
+    
+}

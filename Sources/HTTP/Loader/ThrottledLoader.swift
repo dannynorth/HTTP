@@ -53,7 +53,7 @@ public actor ThrottledLoader: HTTPLoader {
         }
         
         let numberToSignal = min(availableCapacity, pending.count)
-        let continuations = pending.dropFirst(numberToSignal)
+        let continuations = pending.prefix(numberToSignal)
         pending.removeFirst(numberToSignal)
         
         continuations.forEach {

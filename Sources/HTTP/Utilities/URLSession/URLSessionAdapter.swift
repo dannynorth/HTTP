@@ -107,7 +107,9 @@ internal class URLSessionAdapter {
             let err = HTTPError(error: error, request: state.httpRequest, response: state.response)
             result = .failure(err)
         } else if var response = state.response {
-            // TODO: set the response body
+            if let data = state.data {
+                response.body = DataBody(data)
+            }
             result = .success(response)
         } else {
             let err = HTTPError(code: .internal,
@@ -138,6 +140,14 @@ internal class URLSessionAdapter {
     }
     
     func task(_ dataTask: URLSessionDataTask, didReceive data: Data) {
-        print(#function, dataTask, data.count, "bytes")
+        guard states[dataTask.taskIdentifier] != nil else {
+            return
+        }
+        
+        if states[dataTask.taskIdentifier]?.data == nil {
+            states[dataTask.taskIdentifier]?.data = data
+        } else {
+            states[dataTask.taskIdentifier]?.data?.append(data)
+        }
     }
 }

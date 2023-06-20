@@ -20,7 +20,7 @@ extension HTTPResult {
             return HTTPResponse(request: self.request,
                                 status: .ok,
                                 headers: headers,
-                                body: DataBody(data: body, headers: .init()))
+                                body: body)
         }
     }
     
@@ -29,11 +29,4 @@ extension HTTPResult {
         return .success(response)
     }
     
-}
-
-private struct DataBody: HTTPBody {
-    let data: Data
-    let headers: HTTPHeaders
-    
-    var stream: AsyncStream<UInt8> { AsyncStream(sequence: data) }
 }

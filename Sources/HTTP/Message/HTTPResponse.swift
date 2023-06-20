@@ -38,3 +38,32 @@ extension HTTPResponse {
     }
     
 }
+
+#if canImport(Foundation)
+
+import Foundation
+
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
+extension HTTPResponse {
+    
+    public init(request: HTTPRequest, response: HTTPURLResponse, body: Data?) {
+        var headers = HTTPHeaders()
+        for (rawHeader, value) in response.allHeaderFields {
+            let header = HTTPHeader(rawValue: rawHeader.description)
+            let headerValue = (value as? String) ?? String(describing: value)
+            
+            headers.addValue(headerValue, for: header)
+        }
+        
+        self.init(request: request,
+                  status: HTTPStatus(rawValue: response.statusCode),
+                  headers: headers,
+                  body: body)
+    }
+    
+}
+
+#endif
