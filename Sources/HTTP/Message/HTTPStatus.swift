@@ -22,6 +22,10 @@ extension HTTPStatus {
     
     // Based on https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
     
+    public static let `continue` = HTTPStatus(rawValue: 100)
+    public static let switchingProtocols = HTTPStatus(rawValue: 101)
+    public static let processing = HTTPStatus(rawValue: 102)
+    
     public static let ok = HTTPStatus(rawValue: 200)
     public static let created = HTTPStatus(rawValue: 201)
     public static let noContent = HTTPStatus(rawValue: 204)
