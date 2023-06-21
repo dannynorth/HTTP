@@ -60,9 +60,26 @@ internal struct Pairs<Key: Equatable & Sendable, Value: Sendable>: Sendable, Exp
 }
 
 extension Pairs: Sequence {
+    typealias Iterator = Array<Element>.Iterator
     
     func makeIterator() -> IndexingIterator<[Element]> {
         return values.makeIterator()
     }
+    
+}
+
+extension Pairs: Collection {
+    
+    typealias Index = Array<Element>.Index
+    
+    var count: Int { values.count }
+    
+    var startIndex: Index { values.startIndex }
+    
+    var endIndex: Index { values.endIndex }
+    
+    subscript(position: Index) -> Element { values[position] }
+    
+    func index(after i: Index) -> Index { values.index(after: i) }
     
 }

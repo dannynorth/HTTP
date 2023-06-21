@@ -1,4 +1,4 @@
-public struct HTTPHeaders: Sendable, Sequence {
+public struct HTTPHeaders: Sendable, Collection {
     
     private var pairs = Pairs<HTTPHeader, String>()
     
@@ -26,6 +26,12 @@ public struct HTTPHeaders: Sendable, Sequence {
     public func makeIterator() -> IndexingIterator<Array<Element>> {
         return pairs.makeIterator()
     }
+    
+    public var count: Int { pairs.count }
+    public var startIndex: Int { pairs.startIndex }
+    public var endIndex: Int { pairs.endIndex }
+    public subscript(position: Int) -> Element { pairs[position] }
+    public func index(after i: Int) -> Int { pairs.index(after: i) }
 }
 
 extension HTTPHeaders: ExpressibleByDictionaryLiteral {
