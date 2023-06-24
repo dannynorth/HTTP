@@ -7,7 +7,7 @@ import Foundation
 
 public struct DataBody: HTTPBody {
     
-    let data: Data
+    public let data: Data
     
     public let headers: HTTPHeaders
     
