@@ -47,6 +47,7 @@ public actor DeduplicatingLoader: HTTPLoader {
             let id = UUID()
             let handler: DeduplicationHandler = { continuation.resume(returning: $0) }
             
+            #warning("TODO: continuing if it's cancelled?")
             token.addCancellationHandler {
                 self.ongoingRequests[identifier]?.dedupedTasks.setValue(nil, for: id)
             }

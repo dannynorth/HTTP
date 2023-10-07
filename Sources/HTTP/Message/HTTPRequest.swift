@@ -35,6 +35,14 @@ public struct HTTPRequest: Sendable {
         self.body = body
     }
     
+    public init(method: HTTPMethod = .get, host: String? = nil, path: String? = nil, query: HTTPQuery? = nil) {
+        self.method = method
+        self.host = host
+        self.path = path
+        self.query = query ?? .init()
+        self.body = nil
+    }
+    
     public subscript(header name: HTTPHeader) -> String? {
         get { headers.firstValue(for: name) }
         set { headers.setValue(newValue, for: name) }

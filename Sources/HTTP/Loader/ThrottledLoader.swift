@@ -25,6 +25,7 @@ public actor ThrottledLoader: HTTPLoader {
             print("Received request \(request.id) but \(type(of: self)) is paused (maximumNumberOfTasks = 0)")
         }
         
+        #warning("TODO: handle cancellation")
         await waitForCapacity()
         
         return await withNextLoader(for: request) { next in
