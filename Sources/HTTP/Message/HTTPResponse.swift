@@ -43,7 +43,16 @@ public struct HTTPResponse: Sendable, CustomStringConvertible {
                 lines.append("\(header.rawValue): \(value)")
             }
             lines.append("")
-            lines.append("(omitted)")
+            
+            if let syncBody = body as? HTTPSynchronousBody, let data = try? syncBody.bodyData {
+                if let str = String(data: data, encoding: .utf8) {
+                    lines.append(str)
+                } else {
+                    lines.append(data.map { String(format: "%02X", $0) }.joined())
+                }
+            } else {
+                lines.append("(omitted)")
+            }
         }
         
         return lines
