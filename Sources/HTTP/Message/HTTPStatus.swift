@@ -1,13 +1,28 @@
-public struct HTTPStatus: RawRepresentable, Hashable, Comparable, Sendable {
+public struct HTTPStatus: RawRepresentable, Hashable, Comparable, Sendable, CustomStringConvertible {
     
     public static func < (lhs: HTTPStatus, rhs: HTTPStatus) -> Bool {
         return lhs.rawValue < rhs.rawValue
     }
     
     public let rawValue: Int
+    public let statusMessage: String?
+    
+    public var description: String {
+        if let statusMessage {
+            return "\(rawValue) \(statusMessage)"
+        } else {
+            return "\(rawValue)"
+        }
+    }
     
     public init(rawValue: Int) {
         self.rawValue = rawValue
+        self.statusMessage = Self.defaultStatusMessages[rawValue]
+    }
+    
+    public init(rawValue: Int, statusMessage: String?) {
+        self.rawValue = rawValue
+        self.statusMessage = statusMessage
     }
     
     public var isInformational: Bool { return 100 ..< 200 ~= rawValue }
@@ -50,5 +65,41 @@ extension HTTPStatus {
     public static let notImplemented = HTTPStatus(rawValue: 501)
     public static let badGateway = HTTPStatus(rawValue: 502)
     public static let serviceUnavailable = HTTPStatus(rawValue: 503)
+    
+}
+
+
+extension HTTPStatus {
+    
+    public static let defaultStatusMessages: Dictionary<HTTPStatus.RawValue, String> = [
+        100: "Continue",
+        101: "Switching Protocols",
+        102: "Processing",
+        
+        200: "OK",
+        201: "Created",
+        204: "No Content",
+        
+        300: "Multiple Choices",
+        301: "Moved Permanently",
+        302: "Found",
+        304: "Not Modified",
+        307: "Temporary Redirect",
+        308: "Permanent Redirect",
+        
+        400: "Bad Request",
+        401: "Unauthorized",
+        403: "Forbidden",
+        404: "Not Found",
+        405: "MethodNotAllowed",
+        408: "Request Timeout",
+        409: "Conflict",
+        410: "Gone",
+        
+        500: "Internal Server Error",
+        501: "Not Implemented",
+        502: "Bad Gateway",
+        503: "Service Unavailable",
+    ]
     
 }

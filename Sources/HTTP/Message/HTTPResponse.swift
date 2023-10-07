@@ -1,4 +1,4 @@
-public struct HTTPResponse: Sendable {
+public struct HTTPResponse: Sendable, CustomStringConvertible {
     
     public let request: HTTPRequest
     
@@ -27,6 +27,26 @@ public struct HTTPResponse: Sendable {
     public subscript(headers name: HTTPHeader) -> [String] {
         get { headers[name] }
         set { headers[name] = newValue }
+    }
+    
+    public var description: String { descriptionLines.joined(separator: "\n") }
+    
+    public var descriptionLines: Array<String> {
+        var lines = Array<String>()
+        
+        lines.append("\(status)")
+        for (header, value) in headers {
+            lines.append("\(header.rawValue): \(value)")
+        }
+        if let body {
+            for (header, value) in body.headers {
+                lines.append("\(header.rawValue): \(value)")
+            }
+            lines.append("")
+            lines.append("(omitted)")
+        }
+        
+        return lines
     }
     
 }

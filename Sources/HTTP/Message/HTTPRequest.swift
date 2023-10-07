@@ -1,6 +1,6 @@
 import Foundation
 
-public struct HTTPRequest: Sendable {
+public struct HTTPRequest: Sendable, CustomStringConvertible {
     
     public let id = UUID()
     
@@ -71,5 +71,38 @@ public struct HTTPRequest: Sendable {
     public subscript<V>(option keyPath: WritableKeyPath<HTTPOptions, V>) -> V {
         get { options[keyPath: keyPath] }
         set { options[keyPath: keyPath] = newValue }
+    }
+    
+    public var description: String { descriptionLines.joined(separator: "\n") }
+    
+    public var descriptionLines: Array<String> {
+        var lines = Array<String>()
+        
+        var path = path ?? "/"
+        if let fragment { path += "#\(fragment)" }
+        if query.count > 0 {
+            var prefix = "?"
+            
+            for (key, value) in query {
+                path += "\(prefix)\(key)=\(value)"
+                prefix = "&"
+            }
+        }
+        lines.append("\(method.rawValue) \(path)")
+        if let host {
+            lines.append("Host: \(host)")
+        }
+        for (header, value) in headers {
+            lines.append("\(header.rawValue): \(value)")
+        }
+        if let body {
+            for (header, value) in body.headers {
+                lines.append("\(header.rawValue): \(value)")
+            }
+            lines.append("")
+            lines.append("(omitted)")
+        }
+        
+        return lines
     }
 }
