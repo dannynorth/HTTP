@@ -5,27 +5,25 @@
 
 import Foundation
 
-public struct DataBody: HTTPBody {
+public struct DataBody: HTTPSynchronousBody {
     
-    public let data: Data
+    public let bodyData: Data
     
     public let headers: HTTPHeaders
     
     public init(_ data: Data, headers: HTTPHeaders? = nil) {
-        self.data = data
+        self.bodyData = data
         self.headers = headers ?? .init()
     }
     
     public var stream: AsyncStream<UInt8> {
-        return AsyncStream(sequence: data)
+        return AsyncStream(sequence: bodyData)
     }
     
 }
 
-extension Data: HTTPBody {
+extension Data: HTTPSynchronousBody {
     
-    public var stream: AsyncStream<UInt8> {
-        return AsyncStream(sequence: self)
-    }
+    public var bodyData: Data { self }
     
 }

@@ -51,7 +51,17 @@ extension HTTPRequest {
             for (header, value) in body.headers {
                 urlRequest.addValue(value, forHTTPHeaderField: header.rawValue)
             }
-            // TODO: make the body stream
+            
+            if let syncBody = body as? HTTPSynchronousBody {
+                do {
+                    urlRequest.httpBody = try syncBody.bodyData
+                } catch {
+                    print("Error encoding body data: \(error)")
+                    return nil
+                }
+            } else {
+                fatalError("Async bodies are not supported yet")
+            }
         }
         
         return urlRequest

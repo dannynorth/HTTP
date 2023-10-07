@@ -5,18 +5,16 @@
 
 import Foundation
 
-public struct FormBody: HTTPBody {
+public struct FormBody: HTTPSynchronousBody {
     
     public let headers: HTTPHeaders
     
-    public var stream: AsyncStream<UInt8> {
-        let encoded = Data(values.map { (key, value) -> String in
+    public var bodyData: Data {
+        Data(values.map { (key, value) -> String in
             let k = key.addingPercentEncoding(withAllowedCharacters: formBodyAllowed) ?? ""
             let v = value.addingPercentEncoding(withAllowedCharacters: formBodyAllowed) ?? ""
             return "\(k)=\(v)"
         }.joined(separator: "&").utf8)
-        
-        return AsyncStream(sequence: encoded)
     }
     
     public let values: Dictionary<String, String>

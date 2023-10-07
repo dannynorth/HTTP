@@ -5,20 +5,21 @@
 
 import Foundation
 
-public struct JSONBody<E: Encodable & Sendable>: HTTPBody {
+public struct JSONBody<E: Encodable & Sendable>: HTTPSynchronousBody {
     
+    public let encoder: JSONEncoder
     public let value: E
     
-    public var stream: AsyncStream<UInt8> {
+    public var bodyData: Data {
         get throws {
-            let data = try JSONEncoder().encode(value)
-            return AsyncStream(sequence: data)
+            try encoder.encode(value)
         }
     }
     
     public let headers: HTTPHeaders
     
-    public init(value: E) {
+    public init(value: E, encoder: JSONEncoder? = nil) {
+        self.encoder = encoder ?? JSONEncoder()
         self.value = value
         self.headers = [
             "Content-Type": "application/json; charset=utf-8"
