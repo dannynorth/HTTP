@@ -35,9 +35,16 @@ public struct HTTPQuery: Sendable, Collection {
     
 }
 
-extension HTTPQuery: ExpressibleByArrayLiteral {
+extension HTTPQuery: ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral {
     
     public init(arrayLiteral elements: Element...) {
+        self.init()
+        for (key, value) in elements {
+            self.addValue(value, for: key)
+        }
+    }
+    
+    public init(dictionaryLiteral elements: Element...) {
         self.init()
         for (key, value) in elements {
             self.addValue(value, for: key)
