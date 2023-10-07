@@ -34,3 +34,14 @@ public struct HTTPQuery: Sendable, Collection {
     public func index(after i: Int) -> Int { pairs.index(after: i) }
     
 }
+
+extension HTTPQuery: ExpressibleByArrayLiteral {
+    
+    public init(arrayLiteral elements: Element...) {
+        self.init()
+        for (key, value) in elements {
+            self.addValue(value, for: key)
+        }
+    }
+    
+}
