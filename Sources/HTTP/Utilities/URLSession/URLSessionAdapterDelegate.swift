@@ -10,6 +10,7 @@ internal class URLSessionAdapterDelegate: NSObject, URLSessionTaskDelegate, URLS
         super.init()
         
         self.queue.name = "\(type(of: self))"
+        self.queue.maxConcurrentOperationCount = 1
     }
     
     // MARK: - URLSessionTaskDelegate
